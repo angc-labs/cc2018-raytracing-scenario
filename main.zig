@@ -239,6 +239,10 @@ fn render(target: *Framebuffer, objects: []const Forma, lights: []const Light, c
     }
 }
 
+fn reflect(incident: rl.Vector3, normal: rl.Vector3) rl.Vector3 {
+    return incident.subtract(normal.scale(2.0 * incident.dotProduct(normal))).normalize();
+}
+
 fn refract(incident: rl.Vector3, normal: rl.Vector3, refractive_index: f32) ?rl.Vector3 {
     var cosi = incident.dotProduct(normal);
 
@@ -287,12 +291,17 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
         const view_direction = direction.scale(-1);
         _ = view_direction;
 
+        const bias: f32 = 0.001;
+        const normal_offset = if (direction.dotProduct(hit.Normal) < 0)
+            hit.Normal.scale(bias)
+        else
+            hit.Normal.scale(-bias);
+
         if (mat.Propiedades.Reflectividad > 0) {
             if (max_recursion > 0) {
-                const reflect_direction = rl.Vector3{ .x = 0, .y = 1, .z = 0 };
-                const new_og = hit.Punto; // Esto puede hacer que topemos con la misma figura
-                // Eso es malo
-                const reflect_color = cast_ray(new_og, reflect_direction, objects, lights, max_recursion - 1);
+                const reflect_direction = reflect(direction, hit.Normal);
+                const reflect_orig = hit.Punto.add(normal_offset);
+                const reflect_color = cast_ray(reflect_orig, reflect_direction, objects, lights, max_recursion - 1);
                 color = color.add(reflect_color.scale(mat.Propiedades.Reflectividad));
             } else {
                 // Refleja el fondo
