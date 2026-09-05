@@ -312,16 +312,14 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
         if (mat.Propiedades.Transparencia > 0) {
             if (max_recursion > 0) {
                 if (refract(direction, hit.Normal, mat.Refractive_index)) |refract_direction| {
-                    const new_og = hit.Punto; // Esto puede hacer que topemos con la misma figura
-                    // Eso es malo
-                    const refract_color = cast_ray(new_og, refract_direction, objects, lights, max_recursion - 1);
+                    const refract_orig = hit.Punto.subtract(normal_offset);
+                    const refract_color = cast_ray(refract_orig, refract_direction, objects, lights, max_recursion - 1);
                     color = color.add(refract_color.scale(mat.Propiedades.Transparencia));
                 } else {
-                    const reflect_direction = rl.Vector3{ .x = 0, .y = 1, .z = 0 };
-                    const new_og = hit.Punto; // Esto puede hacer que topemos con la misma figura
-                    // Eso es malo
-                    const reflect_color = cast_ray(new_og, reflect_direction, objects, lights, max_recursion - 1);
-                    color = color.add(reflect_color.scale(mat.Propiedades.Reflectividad));
+                    const tir_direction = reflect(direction, hit.Normal);
+                    const tir_orig = hit.Punto.add(normal_offset);
+                    const tir_color = cast_ray(tir_orig, tir_direction, objects, lights, max_recursion - 1);
+                    color = color.add(tir_color.scale(mat.Propiedades.Transparencia));
                 }
             } else {
                 // Refleja el fondo
