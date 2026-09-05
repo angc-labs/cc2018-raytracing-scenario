@@ -288,8 +288,7 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
         var color: rl.Vector3 = .zero();
 
         // Desde el punto a la cámara
-        const view_direction = direction.scale(-1);
-        _ = view_direction;
+        const view_dir = direction.scale(-1).normalize();
 
         const bias: f32 = 0.001;
         const normal_offset = if (direction.dotProduct(hit.Normal) < 0)
@@ -328,29 +327,28 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
         }
 
         for (lights) |light| {
-            if (obscured(hit.Punto, light, objects))
+            const light_vec = light.Position.subtract(hit.Punto);
+            const light_dist = light_vec.length();
+            if (light_dist == 0) continue;
+            const light_dir = light_vec.scale(1.0 / light_dist);
+
+            const shadow_orig = hit.Punto.add(normal_offset);
+            if (obscured(shadow_orig, light_dir, light_dist, objects))
                 continue;
 
-            // La dirección del punto a la luz
-            const light_dir = (rl.Vector3{ .x = 0, .y = 1, .z = 0 }).normalize();
-            _ = light_dir;
+            const n_dot_l = hit.Normal.dotProduct(light_dir);
+            if (n_dot_l <= 0) continue;
 
-            // ¿Cómo sabemos qué tan "bien" nos pega la luz?
-            const diffuse_intensity = 1 * light.Intensity;
-
+            // Iluminación difusa (Lambert)
+            const diffuse_intensity = n_dot_l * light.Intensity;
             const diffuse = mat.Color.scale(diffuse_intensity);
 
-            // Dirección a la que reflejamos la luz
-            const reflection_dir = rl.Vector3{ .x = 0, .y = 1, .z = 0 };
-            _ = reflection_dir;
-
-            // ¿Qué tan liso es nuestro objeto?
-            // ¿Qué tan intensa y precisa es su relfexión especular?
-            const specular_intensity = 1 * light.Intensity;
-
+            // Iluminación especular (Phong)
+            const reflection_dir = reflect(light_dir.scale(-1), hit.Normal);
+            const r_dot_v = @max(0.0, reflection_dir.dotProduct(view_dir));
+            const specular_intensity = std.math.pow(f32, r_dot_v, mat.Especular) * light.Intensity;
             const specular = light.Color.scale(specular_intensity);
 
-            // El cómo mezclar los objetos es más al gusto.
             color = color.add(diffuse.scale(mat.Propiedades.Albedo));
             color = color.add(specular.scale(mat.Propiedades.Especular));
         }
@@ -359,10 +357,13 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
     } else return .zero();
 }
 
-fn obscured(origin: rl.Vector3, light: Light, objects: []const Forma) bool {
-    _ = origin;
-    _ = light;
-    _ = objects;
+fn obscured(origin: rl.Vector3, light_dir: rl.Vector3, light_distance: f32, objects: []const Forma) bool {
+    for (objects) |object| {
+        const hit = object.intersect(origin, light_dir) orelse continue;
+        if (hit.Distancia > 0 and hit.Distancia < light_distance) {
+            return true;
+        }
+    }
 
     return false;
 }
