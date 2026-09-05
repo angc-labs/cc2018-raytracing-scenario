@@ -104,14 +104,14 @@ pub fn main() !void {
             .center = .{ .x = 12.5, .y = 0, .z = -60 },
             .radius = 5,
             .material = .{
-                .Color = V3FromColor(htmlColor("#4c1919")),
+                .Color = V3FromColor(htmlColor("#ff3333")),
                 .Propiedades = .{
-                    .Albedo = 0.9,
-                    .Especular = 0.1,
+                    .Albedo = 0.85,
+                    .Especular = 1.0,
                     .Reflectividad = 0,
                     .Transparencia = 0,
                 },
-                .Especular = 10,
+                .Especular = 15,
                 .Refractive_index = 0,
             },
         } },
@@ -158,11 +158,13 @@ pub fn main() !void {
     }, .zero());
 
     const cameraTurnSpeed: f32 = std.math.pi / 2.0;
-    var camera_x_angle: f32 = std.math.pi;
+    var camera_x_angle: f32 = 243.6 * std.math.pi / 180.0;
     var camera_y_angle: f32 = 0;
 
     const camera_y_angle_max = std.math.pi / 4.0;
     const camera_y_angle_min = -camera_y_angle_max;
+
+    var screenshot_taken: bool = false;
 
     while (!rl.windowShouldClose()) {
         defer {
@@ -197,8 +199,20 @@ pub fn main() !void {
 
         try render(&framebuffer, &spheres, &lights, camera);
 
+        if (!screenshot_taken or rl.isKeyPressed(.p) or rl.isKeyPressed(.f12)) {
+            try framebuffer.render_to_file("resultado.png");
+            screenshot_taken = true;
+        }
+
         try framebuffer.swap_buffers();
     }
+}
+
+fn sky_color(direction: rl.Vector3) rl.Vector3 {
+    const a = 0.5 * (direction.y + 1.0);
+    const white = rl.Vector3{ .x = 1.0, .y = 1.0, .z = 1.0 };
+    const sky_blue = rl.Vector3{ .x = 0.5, .y = 0.7, .z = 1.0 };
+    return white.scale(1.0 - a).add(sky_blue.scale(a));
 }
 
 fn render(target: *Framebuffer, objects: []const Forma, lights: []const Light, camera: Camera) !void {
@@ -304,7 +318,8 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
                 color = color.add(reflect_color.scale(mat.Propiedades.Reflectividad));
             } else {
                 // Refleja el fondo
-                color = color.add(.zero());
+                const reflect_direction = reflect(direction, hit.Normal);
+                color = color.add(sky_color(reflect_direction).scale(mat.Propiedades.Reflectividad));
             }
         }
 
@@ -322,19 +337,19 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
                 }
             } else {
                 // Refleja el fondo
-                color = color.add(.zero());
+                color = color.add(sky_color(direction).scale(mat.Propiedades.Transparencia));
             }
         }
 
         for (lights) |light| {
+            const shadow_orig = hit.Punto.add(normal_offset);
+            if (obscured(shadow_orig, light, objects))
+                continue;
+
             const light_vec = light.Position.subtract(hit.Punto);
             const light_dist = light_vec.length();
             if (light_dist == 0) continue;
             const light_dir = light_vec.scale(1.0 / light_dist);
-
-            const shadow_orig = hit.Punto.add(normal_offset);
-            if (obscured(shadow_orig, light_dir, light_dist, objects))
-                continue;
 
             const n_dot_l = hit.Normal.dotProduct(light_dir);
             if (n_dot_l <= 0) continue;
@@ -354,13 +369,18 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
         }
 
         return color;
-    } else return .zero();
+    } else return sky_color(direction);
 }
 
-fn obscured(origin: rl.Vector3, light_dir: rl.Vector3, light_distance: f32, objects: []const Forma) bool {
+fn obscured(origin: rl.Vector3, light: Light, objects: []const Forma) bool {
+    const light_vec = light.Position.subtract(origin);
+    const light_dist = light_vec.length();
+    if (light_dist == 0) return false;
+    const light_dir = light_vec.scale(1.0 / light_dist);
+
     for (objects) |object| {
         const hit = object.intersect(origin, light_dir) orelse continue;
-        if (hit.Distancia > 0 and hit.Distancia < light_distance) {
+        if (hit.Distancia > 0 and hit.Distancia < light_dist) {
             return true;
         }
     }
