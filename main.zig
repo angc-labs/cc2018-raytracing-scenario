@@ -36,7 +36,7 @@ pub fn main() !void {
 
     var threaded: std.Io.Threaded = .init(gpa, .{});
     const io = threaded.io();
-    var framebuffer = Framebuffer.init(width, height, .black, .white);
+    var framebuffer = Framebuffer.init(width, height, rl.Color{ .r = 0, .g = 0, .b = 0, .a = 0 }, .white);
 
     rl.initWindow(width, height, "Raytracer!!!");
     rl.setTraceLogLevel(.warning);
@@ -208,13 +208,6 @@ pub fn main() !void {
     }
 }
 
-fn sky_color(direction: rl.Vector3) rl.Vector3 {
-    const a = 0.5 * (direction.y + 1.0);
-    const white = rl.Vector3{ .x = 1.0, .y = 1.0, .z = 1.0 };
-    const sky_blue = rl.Vector3{ .x = 0.5, .y = 0.7, .z = 1.0 };
-    return white.scale(1.0 - a).add(sky_blue.scale(a));
-}
-
 fn render(target: *Framebuffer, objects: []const Forma, lights: []const Light, camera: Camera) !void {
     const width_f32: f32 = @floatFromInt(target.width);
     const height_f32: f32 = @floatFromInt(target.height);
@@ -246,9 +239,13 @@ fn render(target: *Framebuffer, objects: []const Forma, lights: []const Light, c
                 .z = direction_from_camera.x * camera.Right.z + direction_from_camera.y * camera.Up.z + direction_from_camera.z * camera.Forward.z,
             };
 
-            const col = cast_ray(camera.Postition, direction, objects, lights, 5);
-            target.set_current_color(V3ToColor(col));
-            try target.set_pixel(@intCast(screen_x), @intCast(screen_y));
+            if (cast_ray(camera.Postition, direction, objects, lights, 5)) |col| {
+                target.set_current_color(V3ToColor(col));
+                try target.set_pixel(@intCast(screen_x), @intCast(screen_y));
+            } else {
+                target.set_current_color(rl.Color{ .r = 0, .g = 0, .b = 0, .a = 0 });
+                try target.set_pixel(@intCast(screen_x), @intCast(screen_y));
+            }
         }
     }
 }
@@ -281,7 +278,7 @@ fn refract(incident: rl.Vector3, normal: rl.Vector3, refractive_index: f32) ?rl.
     }
 }
 
-fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, lights: []const Light, max_recursion: usize) rl.Vector3 {
+fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, lights: []const Light, max_recursion: usize) ?rl.Vector3 {
     var closest_hit: ?Intersect = null;
     var z_buffer: f32 = std.math.floatMax(f32);
     for (objects) |object| {
@@ -314,12 +311,9 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
             if (max_recursion > 0) {
                 const reflect_direction = reflect(direction, hit.Normal);
                 const reflect_orig = hit.Punto.add(normal_offset);
-                const reflect_color = cast_ray(reflect_orig, reflect_direction, objects, lights, max_recursion - 1);
-                color = color.add(reflect_color.scale(mat.Propiedades.Reflectividad));
-            } else {
-                // Refleja el fondo
-                const reflect_direction = reflect(direction, hit.Normal);
-                color = color.add(sky_color(reflect_direction).scale(mat.Propiedades.Reflectividad));
+                if (cast_ray(reflect_orig, reflect_direction, objects, lights, max_recursion - 1)) |reflect_color| {
+                    color = color.add(reflect_color.scale(mat.Propiedades.Reflectividad));
+                }
             }
         }
 
@@ -327,17 +321,16 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
             if (max_recursion > 0) {
                 if (refract(direction, hit.Normal, mat.Refractive_index)) |refract_direction| {
                     const refract_orig = hit.Punto.subtract(normal_offset);
-                    const refract_color = cast_ray(refract_orig, refract_direction, objects, lights, max_recursion - 1);
-                    color = color.add(refract_color.scale(mat.Propiedades.Transparencia));
+                    if (cast_ray(refract_orig, refract_direction, objects, lights, max_recursion - 1)) |refract_color| {
+                        color = color.add(refract_color.scale(mat.Propiedades.Transparencia));
+                    }
                 } else {
                     const tir_direction = reflect(direction, hit.Normal);
                     const tir_orig = hit.Punto.add(normal_offset);
-                    const tir_color = cast_ray(tir_orig, tir_direction, objects, lights, max_recursion - 1);
-                    color = color.add(tir_color.scale(mat.Propiedades.Transparencia));
+                    if (cast_ray(tir_orig, tir_direction, objects, lights, max_recursion - 1)) |tir_color| {
+                        color = color.add(tir_color.scale(mat.Propiedades.Transparencia));
+                    }
                 }
-            } else {
-                // Refleja el fondo
-                color = color.add(sky_color(direction).scale(mat.Propiedades.Transparencia));
             }
         }
 
@@ -369,7 +362,7 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
         }
 
         return color;
-    } else return sky_color(direction);
+    } else return null;
 }
 
 fn obscured(origin: rl.Vector3, light: Light, objects: []const Forma) bool {
