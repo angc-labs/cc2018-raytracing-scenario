@@ -1,3 +1,4 @@
+// Referencia y cita: https://www.instructables.com/Raytracing-With-Landscapes/
 const std = @import("std");
 const builtin = @import("builtin");
 
@@ -97,7 +98,24 @@ pub fn main() !void {
         .Refractive_index = 0,
     };
 
+    const suelo = Material{
+        .Color = V3FromColor(htmlColor("#4a5568")),
+        .Propiedades = .{
+            .Albedo = 0.7,
+            .Especular = 0.3,
+            .Reflectividad = 0.2,
+            .Transparencia = 0,
+        },
+        .Especular = 25,
+        .Refractive_index = 0,
+    };
+
     const spheres = [_]Forma{
+        .{ .Plane = .{
+            .point = .{ .x = 0, .y = -5, .z = 0 },
+            .normal = .{ .x = 0, .y = 1, .z = 0 },
+            .material = suelo,
+        } },
         .{ .Sphere = .{
             .center = .{ .x = 10, .y = 0, .z = -40 },
             .radius = 5,
