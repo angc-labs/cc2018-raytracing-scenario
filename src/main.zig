@@ -12,10 +12,6 @@ const Material = @import("materiales/material.zig").Material;
 const V3ToColor = @import("raytracer.zig").V3ToColor;
 const config = @import("config.zig");
 
-test {
-    _ = @import("objetos/cube.zig");
-}
-
 const Clock = std.Io.Clock.real;
 
 const width = 1300;
@@ -57,7 +53,8 @@ pub fn main() !void {
     // ============================
     // CONFIG
     // ============================
-    const cameraDistance = 100;
+    var cameraDistance: f32 = 100.0;
+    const cameraZoomSpeed: f32 = 60.0;
     var camera: Camera = .init(.{
         .x = 0,
         .y = 0,
@@ -83,7 +80,7 @@ pub fn main() !void {
 
         const dt: f32 = @as(f32, @floatFromInt(delta)) / 1_000_000;
 
-        // controles
+        // controles de rotacion
         if (rl.isKeyDown(.a)) {
             camera_x_angle += cameraTurnSpeed * dt;
         }
@@ -98,6 +95,20 @@ pub fn main() !void {
             camera_y_angle -= cameraTurnSpeed * dt;
             camera_y_angle = @max(camera_y_angle_min, @min(camera_y_angle_max, camera_y_angle));
         }
+
+        // controles de zoom (acercar / alejar)
+        if (rl.isKeyDown(.e) or rl.isKeyDown(.up)) {
+            cameraDistance -= cameraZoomSpeed * dt;
+        }
+        if (rl.isKeyDown(.q) or rl.isKeyDown(.down)) {
+            cameraDistance += cameraZoomSpeed * dt;
+        }
+
+        const mouse_wheel = rl.getMouseWheelMove();
+        if (mouse_wheel != 0) {
+            cameraDistance -= mouse_wheel * 5.0;
+        }
+        cameraDistance = @max(10.0, @min(300.0, cameraDistance));
 
         camera.Postition.x = @cos(camera_x_angle) * cameraDistance;
         camera.Postition.y = @sin(camera_y_angle) * cameraDistance;
