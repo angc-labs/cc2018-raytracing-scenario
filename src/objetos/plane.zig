@@ -1,7 +1,7 @@
 // Referencia: https://www.instructables.com/Raytracing-With-Landscapes/
 const rl = @import("raylib");
-const Intersect = @import("raytracer.zig").Intersect;
-const Material = @import("raytracer.zig").Material;
+const Intersect = @import("../raytracer.zig").Intersect;
+const Material = @import("../materiales/material.zig").Material;
 
 pub const Plane = struct {
     point: rl.Vector3,
