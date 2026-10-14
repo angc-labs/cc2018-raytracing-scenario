@@ -8,8 +8,7 @@ pub const Sphere = struct {
     material: Material,
 
     pub fn intersect(self: Sphere, origin: rl.Vector3, direction: rl.Vector3) ?Intersect {
-        //https://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection
-        // origin - center
+        // https://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection
         const center_to_origin = origin.subtract(self.center);
 
         // Estos son a,b y c como en ax^2 + bx + c = 0

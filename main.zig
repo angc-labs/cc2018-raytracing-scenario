@@ -9,10 +9,8 @@ const Camera = @import("camera.zig").Camera;
 const Light = @import("raytracer.zig").Light;
 const Intersect = @import("raytracer.zig").Intersect;
 const Material = @import("raytracer.zig").Material;
-
-const htmlColor = @import("cute_colors.zig").htmlColor;
-const V3FromColor = @import("raytracer.zig").V3FromColor;
 const V3ToColor = @import("raytracer.zig").V3ToColor;
+const config = @import("config.zig");
 
 const Clock = std.Io.Clock.real;
 
@@ -50,127 +48,11 @@ pub fn main() !void {
     var last_frame_time = Clock.now(io);
     var delta: i64 = 1;
 
-    const espejo = Material{
-        .Color = V3FromColor(htmlColor("#fff")),
-        .Propiedades = .{
-            .Albedo = 0,
-            .Especular = 1,
-            .Reflectividad = 0.9,
-            .Transparencia = 0,
-        },
-        .Especular = 100,
-        .Refractive_index = 0,
-    };
 
-    const vidrio = Material{
-        .Color = V3FromColor(htmlColor("#aaa")),
-        .Propiedades = .{
-            .Albedo = 0,
-            .Especular = 0.5,
-            .Reflectividad = 0.1,
-            .Transparencia = 0.8,
-        },
-        .Especular = 125,
-        .Refractive_index = 1.5,
-    };
 
-    const diamante = Material{
-        .Color = V3FromColor(htmlColor("#aaa")),
-        .Propiedades = .{
-            .Albedo = 0,
-            .Especular = 0.5,
-            .Reflectividad = 0.1,
-            .Transparencia = 0.8,
-        },
-        .Especular = 125,
-        .Refractive_index = 2.417,
-    };
-
-    const marmol = Material{
-        .Color = V3FromColor(htmlColor("#66664c")),
-        .Propiedades = .{
-            .Albedo = 0.4,
-            .Especular = 0.3,
-            .Reflectividad = 0,
-            .Transparencia = 0,
-        },
-        .Especular = 10,
-        .Refractive_index = 0,
-    };
-
-    const suelo = Material{
-        .Color = V3FromColor(htmlColor("#4a5568")),
-        .Propiedades = .{
-            .Albedo = 0.7,
-            .Especular = 0.3,
-            .Reflectividad = 0.2,
-            .Transparencia = 0,
-        },
-        .Especular = 25,
-        .Refractive_index = 0,
-    };
-
-    const spheres = [_]Forma{
-        .{ .Plane = .{
-            .point = .{ .x = 0, .y = -5, .z = 0 },
-            .normal = .{ .x = 0, .y = 1, .z = 0 },
-            .material = suelo,
-        } },
-        .{ .Sphere = .{
-            .center = .{ .x = 10, .y = 0, .z = -40 },
-            .radius = 5,
-            .material = espejo,
-        } },
-        .{ .Sphere = .{
-            .center = .{ .x = 12.5, .y = 0, .z = -60 },
-            .radius = 5,
-            .material = .{
-                .Color = V3FromColor(htmlColor("#ff3333")),
-                .Propiedades = .{
-                    .Albedo = 0.85,
-                    .Especular = 1.0,
-                    .Reflectividad = 0,
-                    .Transparencia = 0,
-                },
-                .Especular = 15,
-                .Refractive_index = 0,
-            },
-        } },
-        .{ .Sphere = .{
-            .center = .{ .x = 0, .y = 0, .z = 0 },
-            .radius = 5,
-            .material = marmol,
-        } },
-        .{ .Sphere = .{
-            .center = .{ .x = 22, .y = 0, .z = -45 },
-            .radius = 5,
-            .material = espejo,
-        } },
-        .{ .Sphere = .{
-            .center = .{ .x = -25, .y = 0, .z = -40 },
-            .radius = 5,
-            .material = vidrio,
-        } },
-        .{ .Sphere = .{
-            .center = .{ .x = -37, .y = 0, .z = -40 },
-            .radius = 5,
-            .material = diamante,
-        } },
-    };
-
-    const lights = [_]Light{
-        .{
-            .Color = V3FromColor(htmlColor("#f00")),
-            .Intensity = 1,
-            .Position = .{ .x = 5, .y = 100, .z = 15 },
-        },
-        .{
-            .Color = V3FromColor(htmlColor("#fff")),
-            .Intensity = 1,
-            .Position = .{ .x = 0, .y = 0, .z = -250 },
-        },
-    };
-
+    // ============================
+    // CONFIG
+    // ============================
     const cameraDistance = 100;
     var camera: Camera = .init(.{
         .x = 0,
@@ -197,6 +79,7 @@ pub fn main() !void {
 
         const dt: f32 = @as(f32, @floatFromInt(delta)) / 1_000_000;
 
+        // controles
         if (rl.isKeyDown(.a)) {
             camera_x_angle += cameraTurnSpeed * dt;
         }
@@ -218,7 +101,7 @@ pub fn main() !void {
 
         camera.lookAt(.zero());
 
-        try render(&framebuffer, &spheres, &lights, camera);
+        try render(&framebuffer, &config.objects, &config.lights, camera);
 
         if (!screenshot_taken or rl.isKeyPressed(.p) or rl.isKeyPressed(.f12)) {
             try framebuffer.render_to_file("resultado.png");
@@ -315,7 +198,7 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
         const mat = hit.Material;
         var color: rl.Vector3 = .zero();
 
-        // Desde el punto a la cámara
+        // desde el punto a la cámara
         const view_dir = direction.scale(-1).normalize();
 
         const bias: f32 = 0.001;
@@ -365,11 +248,11 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
             const n_dot_l = hit.Normal.dotProduct(light_dir);
             if (n_dot_l <= 0) continue;
 
-            // Iluminación difusa (Lambert)
+            // iluminacion didusa
             const diffuse_intensity = n_dot_l * light.Intensity;
             const diffuse = mat.Color.scale(diffuse_intensity);
 
-            // Iluminación especular (Phong)
+            // iluminación especular
             const reflection_dir = reflect(light_dir.scale(-1), hit.Normal);
             const r_dot_v = @max(0.0, reflection_dir.dotProduct(view_dir));
             const specular_intensity = std.math.pow(f32, r_dot_v, mat.Especular) * light.Intensity;
