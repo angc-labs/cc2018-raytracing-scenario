@@ -1,14 +1,12 @@
 const rl = @import("raylib");
 const Material = @import("material.zig").Material;
-const htmlColor = @import("../cute_colors.zig").htmlColor;
-const V3FromColor = @import("../raytracer.zig").V3FromColor;
 
 // ============================================================================
 // MATERIALES PREDEFINIDOS
 // ============================================================================
 
 pub const espejo = Material{
-    .Color = V3FromColor(htmlColor("#fff")),
+    .Color = .{ .x = 1.0, .y = 1.0, .z = 1.0 },
     .Propiedades = .{
         .Albedo = 0,
         .Especular = 1,
@@ -20,7 +18,7 @@ pub const espejo = Material{
 };
 
 pub const vidrio = Material{
-    .Color = V3FromColor(htmlColor("#aaa")),
+    .Color = .{ .x = 0.67, .y = 0.67, .z = 0.67 },
     .Propiedades = .{
         .Albedo = 0,
         .Especular = 0.5,
@@ -32,7 +30,7 @@ pub const vidrio = Material{
 };
 
 pub const diamante = Material{
-    .Color = V3FromColor(htmlColor("#aaa")),
+    .Color = .{ .x = 0.67, .y = 0.67, .z = 0.67 },
     .Propiedades = .{
         .Albedo = 0,
         .Especular = 0.5,
@@ -44,7 +42,7 @@ pub const diamante = Material{
 };
 
 pub const marmol = Material{
-    .Color = V3FromColor(htmlColor("#66664c")),
+    .Color = .{ .x = 0.4, .y = 0.4, .z = 0.3 },
     .Propiedades = .{
         .Albedo = 0.4,
         .Especular = 0.3,
@@ -56,7 +54,7 @@ pub const marmol = Material{
 };
 
 pub const suelo = Material{
-    .Color = V3FromColor(htmlColor("#4a5568")),
+    .Color = .{ .x = 0.29, .y = 0.33, .z = 0.41 },
     .Propiedades = .{
         .Albedo = 0.7,
         .Especular = 0.3,
@@ -68,7 +66,7 @@ pub const suelo = Material{
 };
 
 pub const rojo = Material{
-    .Color = V3FromColor(htmlColor("#ff3333")),
+    .Color = .{ .x = 1.0, .y = 0.2, .z = 0.2 },
     .Propiedades = .{
         .Albedo = 0.85,
         .Especular = 1.0,
@@ -78,3 +76,4 @@ pub const rojo = Material{
     .Especular = 15,
     .Refractive_index = 0,
 };
+

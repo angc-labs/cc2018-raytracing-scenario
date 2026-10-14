@@ -12,6 +12,10 @@ const Material = @import("materiales/material.zig").Material;
 const V3ToColor = @import("raytracer.zig").V3ToColor;
 const config = @import("config.zig");
 
+test {
+    _ = @import("objetos/cube.zig");
+}
+
 const Clock = std.Io.Clock.real;
 
 const width = 1300;

@@ -2,8 +2,6 @@ const rl = @import("raylib");
 const Forma = @import("objetos/forma.zig").Forma;
 const Light = @import("raytracer.zig").Light;
 const Material = @import("materiales/material.zig").Material;
-const htmlColor = @import("cute_colors.zig").htmlColor;
-const V3FromColor = @import("raytracer.zig").V3FromColor;
 
 pub const materiales = @import("materiales/mod.zig");
 pub const objetos = @import("objetos/mod.zig");
@@ -32,12 +30,12 @@ pub const spheres = objetos.spheres;
 
 pub const lights = [_]Light{
     .{
-        .Color = V3FromColor(htmlColor("#f00")),
+        .Color = .{ .x = 1.0, .y = 0.0, .z = 0.0 },
         .Intensity = 1,
         .Position = .{ .x = 5, .y = 100, .z = 15 },
     },
     .{
-        .Color = V3FromColor(htmlColor("#fff")),
+        .Color = .{ .x = 1.0, .y = 1.0, .z = 1.0 },
         .Intensity = 1,
         .Position = .{ .x = 0, .y = 0, .z = -250 },
     },
