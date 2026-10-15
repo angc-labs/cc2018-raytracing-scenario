@@ -16,6 +16,7 @@ pub const diamante = materiales.diamante;
 pub const marmol = materiales.marmol;
 pub const suelo = materiales.suelo;
 pub const rojo = materiales.rojo;
+pub const alabastro = materiales.alabastro;
 
 // ============================================================================
 // OBJETOS DE LA ESCENA (Re-exportados desde src/objetos)

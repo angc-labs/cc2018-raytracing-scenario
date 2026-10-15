@@ -77,3 +77,16 @@ pub const rojo = Material{
     .Refractive_index = 0,
 };
 
+// alabastro
+pub const alabastro = Material{
+    .Color = .{ .x = 0.92, .y = 0.88, .z = 0.78 },
+    .Propiedades = .{
+        .Albedo = 0.1,
+        .Especular = 0.8,
+        .Reflectividad = 0.15,
+        .Transparencia = 0.7,
+        .Translucidez = 0.8,
+    },
+    .Especular = 50,
+    .Refractive_index = 1.25,
+};

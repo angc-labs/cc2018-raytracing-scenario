@@ -10,3 +10,4 @@ pub const diamante = presets.diamante;
 pub const marmol = presets.marmol;
 pub const suelo = presets.suelo;
 pub const rojo = presets.rojo;
+pub const alabastro = presets.alabastro;

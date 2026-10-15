@@ -5,6 +5,8 @@ pub const PropiedadesMaterial = struct {
     Especular: f32,
     Reflectividad: f32,
     Transparencia: f32,
+    // 0 = opaco, mayor a 0 = traslucido (la luz pasa y se dispersa)
+    Translucidez: f32 = 0,
 };
 
 pub const Material = struct {

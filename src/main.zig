@@ -213,7 +213,12 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
         const mat = hit.Material;
         var color: rl.Vector3 = .zero();
 
-        // desde el punto a la cámara
+        // evita sombras negras y da brillo
+        if (mat.Propiedades.Translucidez > 0) {
+            color = color.add(mat.Color.scale(0.12 * mat.Propiedades.Translucidez));
+        }
+
+        // desde el punto a la camara
         const view_dir = direction.scale(-1).normalize();
 
         const bias: f32 = 0.001;
@@ -238,7 +243,16 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
                 if (refract(direction, hit.Normal, mat.Refractive_index)) |refract_direction| {
                     const refract_orig = hit.Punto.subtract(normal_offset);
                     const refract_color = cast_ray(refract_orig, refract_direction, objects, lights, max_recursion - 1);
-                    color = color.add(refract_color.scale(mat.Propiedades.Transparencia));
+                    // para materiales traslucidos, la luz que pasa se convierte con al color del material
+                    const pass_color = if (mat.Propiedades.Translucidez > 0)
+                        rl.Vector3{
+                            .x = refract_color.x * mat.Color.x,
+                            .y = refract_color.y * mat.Color.y,
+                            .z = refract_color.z * mat.Color.z,
+                        }
+                    else
+                        refract_color;
+                    color = color.add(pass_color.scale(mat.Propiedades.Transparencia));
                 } else {
                     const tir_direction = reflect(direction, hit.Normal);
                     const tir_orig = hit.Punto.add(normal_offset);
@@ -251,30 +265,45 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
         }
 
         for (lights) |light| {
-            const shadow_orig = hit.Punto.add(normal_offset);
-            if (obscured(shadow_orig, light, objects))
-                continue;
-
             const light_vec = light.Position.subtract(hit.Punto);
             const light_dist = light_vec.length();
             if (light_dist == 0) continue;
             const light_dir = light_vec.scale(1.0 / light_dist);
 
             const n_dot_l = hit.Normal.dotProduct(light_dir);
-            if (n_dot_l <= 0) continue;
 
-            // iluminacion didusa
-            const diffuse_intensity = n_dot_l * light.Intensity;
-            const diffuse = mat.Color.scale(diffuse_intensity);
+            // 1. Iluminacion directa (frente a la luz)
+            if (n_dot_l > 0) {
+                const shadow_orig = hit.Punto.add(normal_offset);
+                if (!obscured(shadow_orig, light, objects)) {
+                    // iluminacion difusa
+                    const diffuse_intensity = n_dot_l * light.Intensity;
+                    const diffuse = mat.Color.scale(diffuse_intensity);
 
-            // iluminación especular
-            const reflection_dir = reflect(light_dir.scale(-1), hit.Normal);
-            const r_dot_v = @max(0.0, reflection_dir.dotProduct(view_dir));
-            const specular_intensity = std.math.pow(f32, r_dot_v, mat.Especular) * light.Intensity;
-            const specular = light.Color.scale(specular_intensity);
+                    // iluminacion especular
+                    const reflection_dir = reflect(light_dir.scale(-1), hit.Normal);
+                    const r_dot_v = @max(0.0, reflection_dir.dotProduct(view_dir));
+                    const specular_intensity = std.math.pow(f32, r_dot_v, mat.Especular) * light.Intensity;
+                    const specular = light.Color.scale(specular_intensity);
 
-            color = color.add(diffuse.scale(mat.Propiedades.Albedo));
-            color = color.add(specular.scale(mat.Propiedades.Especular));
+                    color = color.add(diffuse.scale(mat.Propiedades.Albedo));
+                    color = color.add(specular.scale(mat.Propiedades.Especular));
+                }
+            }
+
+            // 2. Iluminacion traslucida (luz que atraviesa el objeto desde atras, como el alabastro)
+            if (mat.Propiedades.Translucidez > 0 and n_dot_l < 0) {
+                // En direccion hacia la luz desde la camara
+                const forward_scatter = @max(0.0, direction.dotProduct(light_dir));
+                // -n_dot_l representa la intensidad de la luz que entra por la cara trasera
+                const trans_intensity = (-n_dot_l * 0.4 + forward_scatter * 0.6) * light.Intensity * mat.Propiedades.Translucidez;
+                const trans_light = rl.Vector3{
+                    .x = mat.Color.x * light.Color.x * trans_intensity,
+                    .y = mat.Color.y * light.Color.y * trans_intensity,
+                    .z = mat.Color.z * light.Color.z * trans_intensity,
+                };
+                color = color.add(trans_light);
+            }
         }
 
         return color;

@@ -26,6 +26,12 @@ pub const objects = [_]Forma{
         .radius = 5,
         .material = materiales.marmol,
     } },
+    // Cubo traslucido de alabastro apoyado en el suelo
+    .{ .Cube = .{
+        .center = .{ .x = -16, .y = -1.5, .z = -15 },
+        .size = 7,
+        .material = materiales.alabastro,
+    } },
     .{ .Sphere = .{
         .center = .{ .x = 22, .y = 0, .z = -45 },
         .radius = 5,
