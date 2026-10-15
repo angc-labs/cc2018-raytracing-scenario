@@ -1,13 +1,14 @@
 const rl = @import("raylib");
 const Forma = @import("objetos/forma.zig").Forma;
-const Light = @import("raytracer.zig").Light;
+pub const Light = @import("raytracer.zig").Light;
+pub const LightType = @import("raytracer.zig").LightType;
 const Material = @import("materiales/material.zig").Material;
 
 pub const materiales = @import("materiales/mod.zig");
 pub const objetos = @import("objetos/mod.zig");
 
 // ============================================================================
-// MATERIALES (Re-exportados desde src/materiales)
+// materiales (re-exportados desde src/materiales)
 // ============================================================================
 
 pub const espejo = materiales.espejo;
@@ -21,14 +22,14 @@ pub const lampara = materiales.lampara;
 pub const crear_lampara = materiales.crear_lampara;
 
 // ============================================================================
-// OBJETOS DE LA ESCENA (Re-exportados desde src/objetos)
+// objetos de la escena (re-exportados desde src/objetos)
 // ============================================================================
 
 pub const objects = objetos.objects;
 pub const spheres = objetos.spheres;
 
 // ============================================================================
-// LUCES
+// luces
 // ============================================================================
 
 pub const lights = [_]Light{
@@ -48,4 +49,6 @@ pub const lights = [_]Light{
         .Intensity = 1.5,
         .Position = .{ .x = 5, .y = 10, .z = -25 },
     },
+    // luz direccional (simula el sol con rayos paralelos)
+    Light.direccional(.{ .x = -0.3, .y = -1.0, .z = -0.5 }, .{ .x = 1.0, .y = 1.0, .z = 0.9 }, 0.8),
 };

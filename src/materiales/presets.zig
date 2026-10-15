@@ -103,11 +103,11 @@ pub const lampara = Material{
         .Transparencia = 0,
         .Emision = 2.0,
     },
-    // Color de la luz emitida (se puede personalizar con cualquier vector)
+    // color de la luz emitida (se puede personalizar con cualquier vector)
     .Color_Emision = .{ .x = 1.0, .y = 0.9, .z = 0.4 },
 };
 
-// Crea un material emisivo con el color de luz y la intensidad deseada
+// crea un material emisivo con el color de luz y la intensidad deseada
 pub fn crear_lampara(color_luz: rl.Vector3, intensidad: f32) Material {
     return .{
         .Color = color_luz,

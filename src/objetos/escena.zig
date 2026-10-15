@@ -2,7 +2,7 @@ const Forma = @import("forma.zig").Forma;
 const materiales = @import("../materiales/mod.zig");
 
 // ============================================================================
-// OBJETOS DE LA ESCENA
+// objetos de la escena
 // ============================================================================
 
 pub const objects = [_]Forma{
@@ -26,7 +26,7 @@ pub const objects = [_]Forma{
         .radius = 5,
         .material = materiales.marmol,
     } },
-    // Cubo traslucido de alabastro apoyado en el suelo
+    // cubo traslucido de alabastro apoyado en el suelo
     .{ .Cube = .{
         .center = .{ .x = -16, .y = -1.5, .z = -15 },
         .size = 7,
@@ -55,5 +55,5 @@ pub const objects = [_]Forma{
     } },
 };
 
-// Alias por compatibilidad
+// alias por compatibilidad
 pub const spheres = objects;

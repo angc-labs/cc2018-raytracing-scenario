@@ -271,14 +271,12 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
         }
 
         for (lights) |light| {
-            const light_vec = light.Position.subtract(hit.Punto);
-            const light_dist = light_vec.length();
-            if (light_dist == 0) continue;
-            const light_dir = light_vec.scale(1.0 / light_dist);
+            const info = light.get_dir_and_dist(hit.Punto) orelse continue;
+            const light_dir = info.dir;
 
             const n_dot_l = hit.Normal.dotProduct(light_dir);
 
-            // 1. Iluminacion directa (frente a la luz)
+            // 1. iluminacion directa (frente a la luz)
             if (n_dot_l > 0) {
                 const shadow_orig = hit.Punto.add(normal_offset);
                 if (!obscured(shadow_orig, light, objects)) {
@@ -297,9 +295,9 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
                 }
             }
 
-            // 2. Iluminacion traslucida (luz que atraviesa el objeto desde atras, como el alabastro)
+            // 2. iluminacion traslucida (luz que atraviesa el objeto desde atras, como el alabastro)
             if (mat.Propiedades.Translucidez > 0 and n_dot_l < 0) {
-                // En direccion hacia la luz desde la camara
+                // en direccion hacia la luz desde la camara
                 const forward_scatter = @max(0.0, direction.dotProduct(light_dir));
                 // -n_dot_l representa la intensidad de la luz que entra por la cara trasera
                 const trans_intensity = (-n_dot_l * 0.4 + forward_scatter * 0.6) * light.Intensity * mat.Propiedades.Translucidez;
@@ -317,16 +315,13 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
 }
 
 fn obscured(origin: rl.Vector3, light: Light, objects: []const Forma) bool {
-    const light_vec = light.Position.subtract(origin);
-    const light_dist = light_vec.length();
-    if (light_dist == 0) return false;
-    const light_dir = light_vec.scale(1.0 / light_dist);
+    const info = light.get_dir_and_dist(origin) orelse return false;
 
     for (objects) |object| {
-        const hit = object.intersect(origin, light_dir) orelse continue;
+        const hit = object.intersect(origin, info.dir) orelse continue;
         // los objetos que emiten luz no bloquean la luz
         if (hit.Material.Propiedades.Emision > 0) continue;
-        if (hit.Distancia > 0 and hit.Distancia < light_dist) {
+        if (hit.Distancia > 0 and hit.Distancia < info.dist) {
             return true;
         }
     }
