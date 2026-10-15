@@ -5,13 +5,18 @@ const Material = @import("../materiales/material.zig").Material;
 
 pub const Cube = struct {
     center: rl.Vector3,
-    size: f32,
+    size: f32 = 0,
+    dimensions: ?rl.Vector3 = null,
     material: Material,
 
     pub fn intersect(self: Cube, origin: rl.Vector3, direction: rl.Vector3) ?Intersect {
-        const half = self.size * 0.5;
-        const min = rl.Vector3{ .x = self.center.x - half, .y = self.center.y - half, .z = self.center.z - half };
-        const max = rl.Vector3{ .x = self.center.x + half, .y = self.center.y + half, .z = self.center.z + half };
+        // calcula los limites minimos y maximos del cubo o caja
+        const half = if (self.dimensions) |d|
+            d.scale(0.5)
+        else
+            rl.Vector3{ .x = self.size * 0.5, .y = self.size * 0.5, .z = self.size * 0.5 };
+        const min = self.center.subtract(half);
+        const max = self.center.add(half);
 
         var t_min: f32 = -std.math.floatMax(f32);
         var t_max: f32 = std.math.floatMax(f32);
@@ -30,8 +35,9 @@ pub const Cube = struct {
 
         inline for (0..3) |i| {
             if (@abs(dirs[i]) > 1e-6) {
-                var t1 = (mins[i] - origins[i]) / dirs[i];
-                var t2 = (maxs[i] - origins[i]) / dirs[i];
+                const inv_d = 1.0 / dirs[i];
+                var t1 = (mins[i] - origins[i]) * inv_d;
+                var t2 = (maxs[i] - origins[i]) * inv_d;
                 var sign1: f32 = -1.0;
                 var sign2: f32 = 1.0;
                 if (t1 > t2) {

@@ -53,20 +53,22 @@ pub fn main() !void {
     // ============================
     // CONFIG
     // ============================
-    var cameraDistance: f32 = 100.0;
-    const cameraZoomSpeed: f32 = 60.0;
+    // posicion inicial y distancia de camara hacia la pista de bolos
+    var cameraDistance: f32 = 22.0;
+    const cameraZoomSpeed: f32 = 30.0;
     var camera: Camera = .init(.{
         .x = 0,
-        .y = 0,
-        .z = cameraDistance,
-    }, .zero());
+        .y = 2.5,
+        .z = 4.0,
+    }, .{ .x = 0, .y = -2.0, .z = -18 });
 
     const cameraTurnSpeed: f32 = std.math.pi / 2.0;
-    var camera_x_angle: f32 = 243.6 * std.math.pi / 180.0;
-    var camera_y_angle: f32 = 0;
+    var camera_x_angle: f32 = std.math.pi * 0.5;
+    var camera_y_angle: f32 = 0.10;
 
-    const camera_y_angle_max = std.math.pi / 4.0;
-    const camera_y_angle_min = -camera_y_angle_max;
+    // limites de inclinacion vertical dentro del salon
+    const camera_y_angle_max: f32 = 0.35;
+    const camera_y_angle_min: f32 = -0.05;
 
     var screenshot_taken: bool = false;
 
@@ -108,13 +110,16 @@ pub fn main() !void {
         if (mouse_wheel != 0) {
             cameraDistance -= mouse_wheel * 5.0;
         }
-        cameraDistance = @max(10.0, @min(300.0, cameraDistance));
+        // limita el zoom para mantenerse siempre dentro de las paredes del salon
+        cameraDistance = @max(6.0, @min(24.0, cameraDistance));
 
-        camera.Postition.x = @cos(camera_x_angle) * cameraDistance;
-        camera.Postition.y = @sin(camera_y_angle) * cameraDistance;
-        camera.Postition.z = @sin(camera_x_angle) * cameraDistance;
+        // orbita de camara centrada en la pista de bolos
+        const target_pista = rl.Vector3{ .x = 0, .y = -2.0, .z = -18.0 };
+        camera.Postition.x = target_pista.x + @cos(camera_x_angle) * cameraDistance;
+        camera.Postition.y = target_pista.y + @sin(camera_y_angle) * cameraDistance + 2.5;
+        camera.Postition.z = target_pista.z + @sin(camera_x_angle) * cameraDistance;
 
-        camera.lookAt(.zero());
+        camera.lookAt(target_pista);
 
         try render(&framebuffer, &config.objects, &config.lights, camera);
 
@@ -134,17 +139,18 @@ const RenderContext = struct {
     objects: []const Forma,
     lights: []const Light,
     camera: Camera,
-    start_y: usize,
-    end_y: usize,
+    thread_id: usize,
+    total_threads: usize,
     width_f32: f32,
     height_f32: f32,
     aspect_ratio: f32,
     perspective_scale: f32,
 };
 
-// funcion que ejecuta cada hilo sobre su franja horizontal asignada
+// funcion que ejecuta cada hilo sobre filas intercaladas para balancear la carga de trabajo
 fn render_rows(ctx: RenderContext) void {
-    for (ctx.start_y..ctx.end_y) |screen_y| {
+    var screen_y: usize = ctx.thread_id;
+    while (screen_y < height) : (screen_y += ctx.total_threads) {
         for (0..width) |screen_x| {
             const x_f32: f32 = @floatFromInt(screen_x);
             const y_f32: f32 = @floatFromInt(screen_y);
@@ -167,7 +173,7 @@ fn render_rows(ctx: RenderContext) void {
                 .z = direction_from_camera.x * ctx.camera.Right.z + direction_from_camera.y * ctx.camera.Up.z + direction_from_camera.z * ctx.camera.Forward.z,
             };
 
-            const col = cast_ray(ctx.camera.Postition, direction, ctx.objects, ctx.lights, 5);
+            const col = cast_ray(ctx.camera.Postition, direction, ctx.objects, ctx.lights, 3);
             ctx.target.set_pixel_color(@intCast(screen_x), @intCast(screen_y), V3ToColor(col));
         }
     }
@@ -181,27 +187,23 @@ fn render(target: *Framebuffer, objects: []const Forma, lights: []const Light, c
     const FOV = std.math.pi / 3.0;
     const perspective_scale = @tan(FOV * 0.5);
 
-    // detecta el numero de nucleos logicos del cpu
-    const max_threads: usize = 16;
-    const num_threads: usize = @min(std.Thread.getCpuCount() catch 8, max_threads);
-    const rows_per_thread = (height + num_threads - 1) / num_threads;
+    // permite mas hilos concurrentes para saturar los nucleos eficientemente
+    const max_threads: usize = 64;
+    const cpu_cores: usize = std.Thread.getCpuCount() catch 8;
+    const num_threads: usize = @min(cpu_cores * 4, max_threads);
 
     var threads: [max_threads]?std.Thread = [_]?std.Thread{null} ** max_threads;
     var spawned: usize = 0;
 
-    // lanza los hilos dividiendo la pantalla por fragmentos horizontales
+    // lanza los hilos distribuyendo lineas intercaladas entre todos los hilos
     for (0..num_threads) |i| {
-        const start_y = i * rows_per_thread;
-        if (start_y >= height) break;
-        const end_y = @min(start_y + rows_per_thread, height);
-
         threads[i] = try std.Thread.spawn(.{}, render_rows, .{RenderContext{
             .target = target,
             .objects = objects,
             .lights = lights,
             .camera = camera,
-            .start_y = start_y,
-            .end_y = end_y,
+            .thread_id = i,
+            .total_threads = num_threads,
             .width_f32 = width_f32,
             .height_f32 = height_f32,
             .aspect_ratio = aspect_ratio,
@@ -289,7 +291,13 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
                 const reflect_direction = reflect(direction, hit.Normal);
                 const reflect_orig = hit.Punto.add(normal_offset);
                 const reflect_color = cast_ray(reflect_orig, reflect_direction, objects, lights, max_recursion - 1);
-                color = color.add(reflect_color.scale(mat.Propiedades.Reflectividad));
+                // si el material reflectivo tiene color, tine lo que refleja (ejemplo: esmeralda refleja verde)
+                const tinted_reflect = rl.Vector3{
+                    .x = reflect_color.x * mat.Color.x,
+                    .y = reflect_color.y * mat.Color.y,
+                    .z = reflect_color.z * mat.Color.z,
+                };
+                color = color.add(tinted_reflect.scale(mat.Propiedades.Reflectividad));
             } else {
                 color = color.add(celeste.scale(mat.Propiedades.Reflectividad));
             }
@@ -300,21 +308,23 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
                 if (refract(direction, hit.Normal, mat.Refractive_index)) |refract_direction| {
                     const refract_orig = hit.Punto.subtract(normal_offset);
                     const refract_color = cast_ray(refract_orig, refract_direction, objects, lights, max_recursion - 1);
-                    // para materiales traslucidos, la luz que pasa se convierte con al color del material
-                    const pass_color = if (mat.Propiedades.Translucidez > 0)
-                        rl.Vector3{
-                            .x = refract_color.x * mat.Color.x,
-                            .y = refract_color.y * mat.Color.y,
-                            .z = refract_color.z * mat.Color.z,
-                        }
-                    else
-                        refract_color;
+                    // la luz refractada se tine con el color del material (ejemplo: esmeralda o zafiro)
+                    const pass_color = rl.Vector3{
+                        .x = refract_color.x * mat.Color.x,
+                        .y = refract_color.y * mat.Color.y,
+                        .z = refract_color.z * mat.Color.z,
+                    };
                     color = color.add(pass_color.scale(mat.Propiedades.Transparencia));
                 } else {
                     const tir_direction = reflect(direction, hit.Normal);
                     const tir_orig = hit.Punto.add(normal_offset);
                     const tir_color = cast_ray(tir_orig, tir_direction, objects, lights, max_recursion - 1);
-                    color = color.add(tir_color.scale(mat.Propiedades.Transparencia));
+                    const tir_tinted = rl.Vector3{
+                        .x = tir_color.x * mat.Color.x,
+                        .y = tir_color.y * mat.Color.y,
+                        .z = tir_color.z * mat.Color.z,
+                    };
+                    color = color.add(tir_tinted.scale(mat.Propiedades.Transparencia));
                 }
             } else {
                 color = color.add(celeste.scale(mat.Propiedades.Transparencia));
