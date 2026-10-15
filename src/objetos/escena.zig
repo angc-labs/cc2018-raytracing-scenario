@@ -32,6 +32,12 @@ pub const objects = [_]Forma{
         .size = 7,
         .material = materiales.alabastro,
     } },
+    // lampara o sol que brilla
+    .{ .Sphere = .{
+        .center = .{ .x = 5, .y = 10, .z = -25 },
+        .radius = 3.5,
+        .material = materiales.lampara,
+    } },
     .{ .Sphere = .{
         .center = .{ .x = 22, .y = 0, .z = -45 },
         .radius = 5,

@@ -7,6 +7,8 @@ pub const PropiedadesMaterial = struct {
     Transparencia: f32,
     // 0 = opaco, mayor a 0 = traslucido (la luz pasa y se dispersa)
     Translucidez: f32 = 0,
+    // intensidad de luz propia emitida (0 = no brilla, mayor a 0 = emite luz)
+    Emision: f32 = 0,
 };
 
 pub const Material = struct {
@@ -15,4 +17,6 @@ pub const Material = struct {
     Especular: f32,
     Refractive_index: f32,
     Propiedades: PropiedadesMaterial,
+    // color de la luz que emite
+    Color_Emision: ?rl.Vector3 = null,
 };

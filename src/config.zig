@@ -17,6 +17,8 @@ pub const marmol = materiales.marmol;
 pub const suelo = materiales.suelo;
 pub const rojo = materiales.rojo;
 pub const alabastro = materiales.alabastro;
+pub const lampara = materiales.lampara;
+pub const crear_lampara = materiales.crear_lampara;
 
 // ============================================================================
 // OBJETOS DE LA ESCENA (Re-exportados desde src/objetos)
@@ -39,5 +41,11 @@ pub const lights = [_]Light{
         .Color = .{ .x = 1.0, .y = 1.0, .z = 1.0 },
         .Intensity = 1,
         .Position = .{ .x = 0, .y = 0, .z = -250 },
+    },
+    // luz emitida por la lampara
+    .{
+        .Color = .{ .x = 1.0, .y = 0.9, .z = 0.4 },
+        .Intensity = 1.5,
+        .Position = .{ .x = 5, .y = 10, .z = -25 },
     },
 };

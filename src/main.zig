@@ -213,6 +213,12 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
         const mat = hit.Material;
         var color: rl.Vector3 = .zero();
 
+        // emision de luz propia
+        if (mat.Propiedades.Emision > 0) {
+            const emit_color = mat.Color_Emision orelse mat.Color;
+            color = color.add(emit_color.scale(mat.Propiedades.Emision));
+        }
+
         // evita sombras negras y da brillo
         if (mat.Propiedades.Translucidez > 0) {
             color = color.add(mat.Color.scale(0.12 * mat.Propiedades.Translucidez));
@@ -318,6 +324,8 @@ fn obscured(origin: rl.Vector3, light: Light, objects: []const Forma) bool {
 
     for (objects) |object| {
         const hit = object.intersect(origin, light_dir) orelse continue;
+        // los objetos que emiten luz no bloquean la luz
+        if (hit.Material.Propiedades.Emision > 0) continue;
         if (hit.Distancia > 0 and hit.Distancia < light_dist) {
             return true;
         }

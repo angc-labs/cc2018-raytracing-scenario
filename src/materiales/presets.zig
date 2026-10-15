@@ -90,3 +90,36 @@ pub const alabastro = Material{
     .Especular = 50,
     .Refractive_index = 1.25,
 };
+
+// lampara o sol: material emisivo
+pub const lampara = Material{
+    .Color = .{ .x = 1.0, .y = 0.95, .z = 0.8 },
+    .Especular = 10,
+    .Refractive_index = 0,
+    .Propiedades = .{
+        .Albedo = 0.1,
+        .Especular = 0,
+        .Reflectividad = 0,
+        .Transparencia = 0,
+        .Emision = 2.0,
+    },
+    // Color de la luz emitida (se puede personalizar con cualquier vector)
+    .Color_Emision = .{ .x = 1.0, .y = 0.9, .z = 0.4 },
+};
+
+// Crea un material emisivo con el color de luz y la intensidad deseada
+pub fn crear_lampara(color_luz: rl.Vector3, intensidad: f32) Material {
+    return .{
+        .Color = color_luz,
+        .Especular = 10,
+        .Refractive_index = 0,
+        .Propiedades = .{
+            .Albedo = 0.1,
+            .Especular = 0,
+            .Reflectividad = 0,
+            .Transparencia = 0,
+            .Emision = intensidad,
+        },
+        .Color_Emision = color_luz,
+    };
+}

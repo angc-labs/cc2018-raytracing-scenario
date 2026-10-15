@@ -11,3 +11,5 @@ pub const marmol = presets.marmol;
 pub const suelo = presets.suelo;
 pub const rojo = presets.rojo;
 pub const alabastro = presets.alabastro;
+pub const lampara = presets.lampara;
+pub const crear_lampara = presets.crear_lampara;
