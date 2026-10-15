@@ -127,24 +127,33 @@ pub fn main() !void {
     }
 }
 
-fn render(target: *Framebuffer, objects: []const Forma, lights: []const Light, camera: Camera) !void {
-    const width_f32: f32 = @floatFromInt(target.width);
-    const height_f32: f32 = @floatFromInt(target.height);
+// referencia: https://www.scratchapixel.com/lessons/3d-basic-rendering/introduction-to-ray-tracing/ray-tracing-practical-example.html
+// referencia hilos: https://dev.to/11110110011/parallel-programming-in-zig-threads-shared-memory-and-synchronization-2k21
+const RenderContext = struct {
+    target: *Framebuffer,
+    objects: []const Forma,
+    lights: []const Light,
+    camera: Camera,
+    start_y: usize,
+    end_y: usize,
+    width_f32: f32,
+    height_f32: f32,
+    aspect_ratio: f32,
+    perspective_scale: f32,
+};
 
-    const aspect_ratio = width_f32 / height_f32;
-    const FOV = std.math.pi / 3.0;
-    const perspective_scale = @tan(FOV * 0.5);
-
-    for (0..height) |screen_y| {
+// funcion que ejecuta cada hilo sobre su franja horizontal asignada
+fn render_rows(ctx: RenderContext) void {
+    for (ctx.start_y..ctx.end_y) |screen_y| {
         for (0..width) |screen_x| {
             const x_f32: f32 = @floatFromInt(screen_x);
             const y_f32: f32 = @floatFromInt(screen_y);
 
-            const x_minus1_to_1 = (x_f32 * 2) / width_f32 - 1;
-            const y_minus1_to_1 = 1 - (y_f32 * 2) / height_f32;
+            const x_minus1_to_1 = (x_f32 * 2) / ctx.width_f32 - 1;
+            const y_minus1_to_1 = 1 - (y_f32 * 2) / ctx.height_f32;
 
-            const x_direction = x_minus1_to_1 * aspect_ratio * perspective_scale;
-            const y_direction = y_minus1_to_1 * perspective_scale;
+            const x_direction = x_minus1_to_1 * ctx.aspect_ratio * ctx.perspective_scale;
+            const y_direction = y_minus1_to_1 * ctx.perspective_scale;
 
             const direction_from_camera = (rl.Vector3{
                 .x = x_direction,
@@ -153,15 +162,57 @@ fn render(target: *Framebuffer, objects: []const Forma, lights: []const Light, c
             }).normalize();
 
             const direction = rl.Vector3{
-                .x = direction_from_camera.x * camera.Right.x + direction_from_camera.y * camera.Up.x + direction_from_camera.z * camera.Forward.x,
-                .y = direction_from_camera.x * camera.Right.y + direction_from_camera.y * camera.Up.y + direction_from_camera.z * camera.Forward.y,
-                .z = direction_from_camera.x * camera.Right.z + direction_from_camera.y * camera.Up.z + direction_from_camera.z * camera.Forward.z,
+                .x = direction_from_camera.x * ctx.camera.Right.x + direction_from_camera.y * ctx.camera.Up.x + direction_from_camera.z * ctx.camera.Forward.x,
+                .y = direction_from_camera.x * ctx.camera.Right.y + direction_from_camera.y * ctx.camera.Up.y + direction_from_camera.z * ctx.camera.Forward.y,
+                .z = direction_from_camera.x * ctx.camera.Right.z + direction_from_camera.y * ctx.camera.Up.z + direction_from_camera.z * ctx.camera.Forward.z,
             };
 
-            const col = cast_ray(camera.Postition, direction, objects, lights, 5);
-            target.set_current_color(V3ToColor(col));
-            try target.set_pixel(@intCast(screen_x), @intCast(screen_y));
+            const col = cast_ray(ctx.camera.Postition, direction, ctx.objects, ctx.lights, 5);
+            ctx.target.set_pixel_color(@intCast(screen_x), @intCast(screen_y), V3ToColor(col));
         }
+    }
+}
+
+fn render(target: *Framebuffer, objects: []const Forma, lights: []const Light, camera: Camera) !void {
+    const width_f32: f32 = @floatFromInt(target.width);
+    const height_f32: f32 = @floatFromInt(target.height);
+
+    const aspect_ratio = width_f32 / height_f32;
+    const FOV = std.math.pi / 3.0;
+    const perspective_scale = @tan(FOV * 0.5);
+
+    // detecta el numero de nucleos logicos del cpu
+    const max_threads: usize = 16;
+    const num_threads: usize = @min(std.Thread.getCpuCount() catch 8, max_threads);
+    const rows_per_thread = (height + num_threads - 1) / num_threads;
+
+    var threads: [max_threads]?std.Thread = [_]?std.Thread{null} ** max_threads;
+    var spawned: usize = 0;
+
+    // lanza los hilos dividiendo la pantalla por fragmentos horizontales
+    for (0..num_threads) |i| {
+        const start_y = i * rows_per_thread;
+        if (start_y >= height) break;
+        const end_y = @min(start_y + rows_per_thread, height);
+
+        threads[i] = try std.Thread.spawn(.{}, render_rows, .{RenderContext{
+            .target = target,
+            .objects = objects,
+            .lights = lights,
+            .camera = camera,
+            .start_y = start_y,
+            .end_y = end_y,
+            .width_f32 = width_f32,
+            .height_f32 = height_f32,
+            .aspect_ratio = aspect_ratio,
+            .perspective_scale = perspective_scale,
+        }});
+        spawned += 1;
+    }
+
+    // espera a que todos los hilos terminen de renderizar
+    for (0..spawned) |i| {
+        if (threads[i]) |t| t.join();
     }
 }
 

@@ -32,6 +32,11 @@ pub const Framebuffer = struct {
         self.color_buff.drawPixel(x, y, self.current_color);
     }
 
+    // dibuja un pixel directamente con su color sin modificar el estado global
+    pub fn set_pixel_color(self: *Framebuffer, x: i32, y: i32, color: rl.Color) void {
+        self.color_buff.drawPixel(x, y, color);
+    }
+
     pub fn set_background_color(self: *Framebuffer, color: rl.Color) void {
         self.background_color = color;
     }
