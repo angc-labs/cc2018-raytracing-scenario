@@ -40,17 +40,17 @@ A continuación se listan únicamente los criterios implementados en el código:
 | Característica | Archivo |
 | :--- | :--- |
 | **Rotación en el diorama** | [`src/main.zig`](src/main.zig) |
-| **Cámara con acercar y alejar (Zoom)** | [`src/main.zig`](src/main.zig)|
+| **Cámara con acercar y alejar (zoom in/out)** | [`src/main.zig`](src/main.zig)|
 | **Múltiples materiales diferenciados** | [`src/materiales/presets.zig`](src/materiales/presets.zig) |
 | **Refracción en materiales** | [`src/main.zig`](src/main.zig)|
 | **Reflexión en materiales** | [`src/main.zig`](src/main.zig)|
 | **Sombras** | [`src/main.zig`](src/main.zig)|
 | **Concurrencia** | [`src/main.zig`](src/main.zig)|
-| **Material traslúcido (Alabastro)** | [`src/main.zig`](src/main.zig)|
+| **Material traslúcido (alabastro)** | [`src/main.zig`](src/main.zig)|
 | **Forma no vista en clase (caja)** | [`src/objetos/cube.zig`](src/objetos/cube.zig)|
 | **Tipo de fuente de luz no visto en clase** | [`src/raytracer.zig`](src/raytracer.zig)|
 | **Materiales translúcidos o reflectivos con color** | [`src/main.zig`](src/main.zig)|
-| **Materiales que brillan (Emisivos)** | [`src/main.zig`](src/main.zig)|
+| **Materiales que brillan (emisivos)** | [`src/main.zig`](src/main.zig)|
 
 ---
 
