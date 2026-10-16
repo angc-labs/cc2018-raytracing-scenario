@@ -47,7 +47,7 @@ A continuación se listan únicamente los criterios implementados en el código:
 | **Sombras** | [`src/main.zig`](src/main.zig)|
 | **Concurrencia** | [`src/main.zig`](src/main.zig)|
 | **Material traslúcido (Alabastro)** | [`src/main.zig`](src/main.zig)|
-| **Forma no vista en clase (Cubo / Caja AABB)** | [`src/objetos/cube.zig`](src/objetos/cube.zig)|
+| **Forma no vista en clase (caja)** | [`src/objetos/cube.zig`](src/objetos/cube.zig)|
 | **Tipo de fuente de luz no visto en clase** | [`src/raytracer.zig`](src/raytracer.zig)|
 | **Materiales translúcidos o reflectivos con color** | [`src/main.zig`](src/main.zig)|
 | **Materiales que brillan (Emisivos)** | [`src/main.zig`](src/main.zig)|
